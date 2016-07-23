@@ -92,11 +92,11 @@
       zoom.value = params.zoom.init || 0
 
       zoom.inElm.onclick  = () => {
-        delta = -1
+        delta = 1
         resizeImage()
       }
       zoom.outElm.onclick = () => {
-        delta = 1
+        delta = -1
         resizeImage()
       }
 
@@ -109,7 +109,7 @@
           if (newWidth - Math.abs(img.offsetLeft) < container.width) {
             newOffsetLeft = container.width - newWidth
           } else {
-            newOffsetLeft = img.offsetLeft - img.offsetLeft * delta * zoom.step
+            newOffsetLeft = img.offsetLeft * newWidth / img.width
           }
 
           next && next()
@@ -125,7 +125,7 @@
           if (newHeight - Math.abs(img.offsetTop) < container.height) {
             newOffsetTop = container.height - newHeight
           } else {
-            newOffsetTop = img.offsetTop - img.offsetTop * delta * zoom.step
+            newOffsetTop = img.offsetTop * newHeight / img.height
           }
 
           next && next()
@@ -137,8 +137,12 @@
           zoom.value += zoom.step * delta
         }
 
-        newWidth   = img.initWidth / zoom.value
-        newHeight  = img.initHeight / zoom.value
+        if (zoom.value < 0) {
+          return zoom.value = 0
+        }
+
+        newWidth   = img.initWidth + img.initWidth * zoom.value
+        newHeight  = img.initHeight + img.initHeight * zoom.value
 
         // min height priory
         if (img.ratio > container.ratio) {
@@ -172,8 +176,6 @@
     }
 
     img.elm.onload = function() {
-      img.initWidth   = img.elm.width
-      img.initHeight  = img.elm.height
       img.width       = img.elm.width
       img.height      = img.elm.height
       img.ratio       = img.elm.width / img.elm.height
@@ -195,6 +197,8 @@
       const offsetTop  = getInitialOffset(newHeight, params.top)
       const offsetLeft = getInitialOffset(newWidth, params.left)
 
+      img.initWidth   = newWidth
+      img.initHeight  = newHeight
       img.width       = newWidth
       img.height      = newHeight
       img.offsetTop   = offsetTop
