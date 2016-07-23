@@ -1,21 +1,10 @@
-((window, factory) => {
-  if (typeof define === 'function' && define.amd) {
-    define(['cover-editor'], factory)
-  }
-  else if (typeof module === 'object' && module.exports) {
-    module.exports = factory()
-  }
-  else {
-    window.CoverEditor = factory()
-  }
-})(window, () => {
-
+const CoverEditor = (() => {
   function size(value) {
     return value + 'px'
   }
 
   function getInitialSize(value, zoom) {
-  	return zoom.init ? value + value * zoom.init : value
+    return zoom.init ? value + value * zoom.init : value
   }
 
   function getInitialOffset(value, percent) {
@@ -275,5 +264,6 @@
   }
 
   return CoverEditor
-
 })
+
+export default CoverEditor
