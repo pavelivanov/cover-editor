@@ -13,6 +13,7 @@
     "cover",
     "editor"
   ],
+  "main": "./lib",
   "scripts": {
     "clean": "rimraf ./lib",
     "dev": "babel -w ./src --out-dir ./lib",
