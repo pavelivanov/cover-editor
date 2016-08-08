@@ -10,6 +10,11 @@
 			position: relative;
 		}
 
+		#cover {
+			width: 700px;
+			height: 300px;
+		}
+
 		.cover-zoom {
 			background-color: #fff;
 			position: absolute;
@@ -45,8 +50,8 @@
 
 <div class="cover-wrapper">
 	<div class="cover-zoom">
-		<div id="coverZoomIn">+</div>
-		<div id="coverZoomOut">&dash;</div>
+		<div id="scaleUp">+</div>
+		<div id="scaleDown">&dash;</div>
 	</div>
 	<div id="cover"></div>
 	<div class="navig">
@@ -58,32 +63,32 @@
 <script src="../lib/index.js"></script>
 
 <script>
+	var cover     = document.getElementById('cover');
+	var scaleUp   = document.getElementById('scaleUp');
+	var scaleDown = document.getElementById('scaleDown');
 	var saveBtn   = document.getElementById('save');
 	var cancelBtn = document.getElementById('cancel');
 
-	var coverEditor = new CoverEditor('cover', './images/cover_l.jpg', {
-		width: 700,
-		height: 300,
-		top: 0, // percent
-		left: 0,
-		zoom: {
-			init: 0,
-			inElm: 'coverZoomIn',
-			outElm: 'coverZoomOut',
-			step: 0.02 // percent
+	var initialParams = localStorage && JSON.parse(localStorage.getItem('coverEditor_initialParams'))
+
+	var coverEditor = new CoverEditor(cover, {
+		src: './images/cover_l.jpg',
+		initialParams: initialParams,
+		scaleStep: 0.02,
+		navig: {
+			scaleUp: scaleUp,
+			scaleDown: scaleDown,
+			save: save,
+			cancel: cancel
 		},
-		onSave: function (props) {
+		onSave: function(props) {
 			console.log(props)
+
+			if (localStorage) {
+				localStorage.setItem('coverEditor_initialParams', JSON.stringify(props))
+			}
 		}
 	})
-
-	saveBtn.onclick = function () {
-		coverEditor.save()
-	}
-
-	cancelBtn.onclick = function () {
-		coverEditor.cancel()
-	}
 </script>
 
 </body>

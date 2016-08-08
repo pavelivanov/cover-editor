@@ -2,159 +2,122 @@ function size(value) {
   return value + 'px'
 }
 
-function getInitialSize(value, zoom) {
-  return zoom.init ? value + value * zoom.init : value
-}
 
-function getInitialOffset(value, percent) {
-  return percent ? -1 * value * percent : 0
-}
-
-function setElm(obj, elm, key) {
-  if (typeof elm === 'string') {
-    obj[key || 'elm'] = document.getElementById(elm)
-  } else {
-    obj[key || 'elm'] = elm
+const CoverEditor = function (containerElm, options) {
+  const defaultOpts = {
+    scaleStep: 0.03,
+    initialParams: null,
   }
-}
 
-function noop () {}
+  const opts = {}
+
+  for (const key in defaultOpts) {
+    opts[key] = key in options ? options[key] : defaultOpts[key]
+  }
+
+  const data = this.data = {}
 
 
-const CoverEditor = function (containerElm, src, params) {
-  const self = this
+  // Drag -------------------------------------------------------- /
 
-  const container = {}
-  const img = {}
-  const zoom = {}
   const drag = {}
 
-  self.state = { img, zoom }
-  self.events = {
-    onSave: params.onSave || noop,
-    onCancel: params.onCancel || noop
-  }
 
+  // Scale ------------------------------------------------------- /
 
-  // Container
+  const scale = {}
 
-  setElm(container, containerElm)
+  scale.min   = 0
+  scale.value = opts.initialParams && opts.initialParams.scale || 1
 
-  container.elm.style.width     = size(params.width)
-  container.elm.style.height    = size(params.height)
-  container.elm.style.overflow  = 'hidden'
-  container.elm.style.cursor    = '-webkit-grab'
-  container.width = params.width
-  container.height = params.height
-  container.ratio = params.width / params.height
+  scale.up    = () => scaleImage(1)
+  scale.down  = () => scaleImage(-1)
 
-  container.elm.onmousedown = (event) => {
-    drag.initMousePos = {
-      top: event.pageY,
-      left: event.pageX
-    }
-
-    drag.initImgPos = {
-      top: img.offsetTop,
-      left: img.offsetLeft
-    }
-
-    container.elm.style.cursor = '-webkit-grabbing'
-    container.draggable = true
-  }
-
-
-  // Zoom
-
-  if (params.zoom) {
-    let delta
-    let newWidth
-    let newHeight
-    let newOffsetTop
-    let newOffsetLeft
-
-    setElm(zoom, params.zoom.inElm, 'inElm')
-    setElm(zoom, params.zoom.outElm, 'outElm')
-
-    zoom.step = params.zoom.step || 0.01
-    zoom.value = params.zoom.init || 0
-
-    zoom.inElm.onclick  = () => {
-      delta = 1
-      resizeImage()
-    }
-    zoom.outElm.onclick = () => {
-      delta = -1
-      resizeImage()
-    }
-
-    function checkWidth(next) {
-      if (newWidth < container.width) {
-        newWidth      = container.width
-        newHeight     = img.height * newWidth / img.width
-        newOffsetLeft = 0
+  const checkWidth = (sizes, next) => {
+    if (sizes.width < container.width) {
+      sizes.width   = container.width
+      sizes.height  = img.height * sizes.width / img.width
+      sizes.left    = 0
+    } else {
+      if (sizes.width - Math.abs(img.left) < container.width) {
+        sizes.left = container.width - sizes.width
       } else {
-        if (newWidth - Math.abs(img.offsetLeft) < container.width) {
-          newOffsetLeft = container.width - newWidth
-        } else {
-          newOffsetLeft = img.offsetLeft * newWidth / img.width
-        }
-
-        next && next()
-      }
-    }
-
-    function checkHeight(next) {
-      if (newHeight < container.height) {
-        newHeight     = container.height
-        newWidth      = img.width * newHeight / img.height
-        newOffsetTop  = 0
-      } else {
-        if (newHeight - Math.abs(img.offsetTop) < container.height) {
-          newOffsetTop = container.height - newHeight
-        } else {
-          newOffsetTop = img.offsetTop * newHeight / img.height
-        }
-
-        next && next()
-      }
-    }
-
-    function resizeImage(initial) {
-      if (!initial) {
-        zoom.value += zoom.step * delta
+        sizes.left = img.left * sizes.width / img.width
       }
 
-      if (zoom.value < 0) {
-        return zoom.value = 0
-      }
-
-      newWidth   = img.initWidth + img.initWidth * zoom.value
-      newHeight  = img.initHeight + img.initHeight * zoom.value
-
-      // min height priory
-      if (img.ratio > container.ratio) {
-        checkHeight(checkWidth)
-      }
-      // min width priory
-      else {
-        checkWidth(checkHeight)
-      }
-
-      img.width       = newWidth
-      img.height      = newHeight
-      img.offsetTop   = newOffsetTop
-      img.offsetLeft  = newOffsetLeft
-
-      img.elm.style.width       = size(newWidth)
-      img.elm.style.height      = size(newHeight)
-      img.elm.style.marginTop   = size(newOffsetTop)
-      img.elm.style.marginLeft  = size(newOffsetLeft)
+      next && next(sizes)
     }
   }
 
+  const checkHeight = (sizes, next) => {
+    if (sizes.height < container.height) {
+      sizes.height  = container.height
+      sizes.width   = img.width * sizes.height / img.height
+      sizes.top     = 0
+    } else {
+      if (sizes.height - Math.abs(img.top) < container.height) {
+        sizes.top = container.height - sizes.height
+      } else {
+        sizes.top = img.top * sizes.height / img.height
+      }
 
-  // Image
+      next && next(sizes)
+    }
+  }
+
+  const scaleImage = (delta) => {
+    scale.value += opts.scaleStep * delta
+
+    if (scale.value < scale.min) {
+      scale.value = scale.min
+    }
+
+    const sizes = {
+      width: 0,
+      height: 0,
+      top: 0,
+      left: 0
+    }
+
+    sizes.width   = Number(img.originalWidth * scale.value)
+    sizes.height  = Number(img.originalHeight * scale.value)
+
+    // min height priory
+    if (img.ratio > container.ratio) {
+      checkHeight(sizes, checkWidth)
+    }
+    // min width priory
+    else {
+      checkWidth(sizes, checkHeight)
+    }
+
+    img.width   = sizes.width
+    img.height  = sizes.height
+    img.top     = sizes.top
+    img.left    = sizes.left
+
+    img.elm.style.width       = size(img.width)
+    img.elm.style.height      = size(img.height)
+    img.elm.style.marginTop   = size(img.top)
+    img.elm.style.marginLeft  = size(img.left)
+  }
+
+
+  // Container --------------------------------------------------- /
+
+    const container = {}
+
+    container.elm                 = containerElm
+    container.elm.style.overflow  = 'hidden'
+    container.elm.style.cursor    = '-webkit-grab'
+    container.width               = container.elm.clientWidth
+    container.height              = container.elm.clientHeight
+    container.ratio               = container.width / container.height
+
+
+  // Image ------------------------------------------------------- /
+
+  const img = {}
 
   img.elm = new Image()
 
@@ -164,38 +127,47 @@ const CoverEditor = function (containerElm, src, params) {
   }
 
   img.elm.onload = function() {
-    img.width       = img.elm.width
-    img.height      = img.elm.height
-    img.ratio       = img.elm.width / img.elm.height
+    img.originalWidth   = img.elm.width
+    img.originalHeight  = img.elm.height
+    img.ratio           = img.elm.originalWidth / img.elm.originalHeight
 
-    let newWidth
-    let newHeight
+    let width
+    let height
+    let top
+    let left
+    
+    if (opts.initialParams) {
+      width   = opts.initialParams.width
+      height  = opts.initialParams.height
+      top     = opts.initialParams.top
+      left    = opts.initialParams.left
+    }
+    else {
+      if (img.ratio > container.ratio) {
+        height = container.height
+        width  = img.originalWidth * height / img.originalHeight
+        top     = 0
+        left    = Number(((container.width - width) / 2).toFixed(2))
+      }
+      else {
+        width  = container.width
+        height = img.originalHeight * width / img.originalWidth
+        top     = Number(((container.height - height) / 2).toFixed(2))
+        left    = 0
+      }
 
-    if (img.ratio > container.ratio) {
-      newHeight = container.height
-      newWidth  = img.width * newHeight / img.height
-    } else {
-      newWidth  = container.width
-      newHeight = img.height * newWidth / img.width
+      scale.min = scale.value = Number((width / img.originalWidth).toFixed(2))
     }
 
-    newWidth  = getInitialSize(newWidth, params.zoom)
-    newHeight = getInitialSize(newHeight, params.zoom)
+    img.width   = width
+    img.height  = height
+    img.top     = top
+    img.left    = left
 
-    const offsetTop  = getInitialOffset(newHeight, params.top)
-    const offsetLeft = getInitialOffset(newWidth, params.left)
-
-    img.initWidth   = newWidth
-    img.initHeight  = newHeight
-    img.width       = newWidth
-    img.height      = newHeight
-    img.offsetTop   = offsetTop
-    img.offsetLeft  = offsetLeft
-
-    img.elm.style.width       = size(newWidth)
-    img.elm.style.height      = size(newHeight)
-    img.elm.style.marginTop   = size(offsetTop)
-    img.elm.style.marginLeft  = size(offsetLeft)
+    img.elm.style.width       = size(img.width)
+    img.elm.style.height      = size(img.height)
+    img.elm.style.marginTop   = size(img.top)
+    img.elm.style.marginLeft  = size(img.left)
 
     container.elm.appendChild(img.elm)
   }
@@ -204,63 +176,93 @@ const CoverEditor = function (containerElm, src, params) {
     console.error('CoverEditor: Image loading error')
   }
 
-  img.elm.src = src
+  img.elm.src = options.src
 
 
-  // Events
+  // Methods ------------------------------------------------------ /
 
-  document.onmousemove = (event) => {
+  const save = () => {
+    if (typeof options.onSave == 'function') {
+      options.onSave({
+        originalWidth:  Number(img.originalWidth),
+        originalHeight: Number(img.originalHeight),
+        width:          Number(img.width),
+        height:         Number(img.height),
+        scale:          Number(scale.value),
+        top:            Number(img.top),
+        left:           Number(img.left)
+      })
+    }
+  }
+
+  const cancel = () => {
+    if (typeof options.onCancel == 'function') {
+      options.onCancel()
+    }
+  }
+
+
+  // Events ------------------------------------------------------- /
+
+  options.navig.save.addEventListener('click', save)
+  options.navig.cancel.addEventListener('click', cancel)
+
+  options.navig.scaleUp.addEventListener('click', scale.up)
+  options.navig.scaleDown.addEventListener('click', scale.down)
+
+  container.elm.addEventListener('mousedown', (event) => {
+    drag.initMousePos = {
+      top: event.pageY,
+      left: event.pageX
+    }
+
+    drag.initImgPos = {
+      top: img.top,
+      left: img.left
+    }
+
+    container.elm.style.cursor = '-webkit-grabbing'
+    container.draggable = true
+  })
+
+  document.addEventListener('mouseup', () => {
+    container.elm.style.cursor = '-webkit-grab'
+    container.draggable = false
+  })
+
+  document.addEventListener('mousemove', (event) => {
     if (container.draggable) {
-      let newOffsetTop  = event.pageY - drag.initMousePos.top + drag.initImgPos.top
-      let newOffsetLeft = event.pageX - drag.initMousePos.left + drag.initImgPos.left
+      let top  = event.pageY - drag.initMousePos.top + drag.initImgPos.top
+      let left = event.pageX - drag.initMousePos.left + drag.initImgPos.left
 
       if (container.height == img.height) {
-        newOffsetTop = 0
+        top = 0
       } else {
-        if (newOffsetTop > 0) {
-          newOffsetTop = 0
+        if (top > 0) {
+          top = 0
         }
-        else if (Math.abs(newOffsetTop) + container.height > img.height) {
-          newOffsetTop = -1 * Math.abs(img.height - container.height)
+        else if (Math.abs(top) + container.height > img.height) {
+          top = -1 * Math.abs(img.height - container.height)
         }
       }
 
       if (container.width == img.width) {
-        newOffsetLeft = 0
+        left = 0
       } else {
-        if (newOffsetLeft > 0) {
-          newOffsetLeft = 0
+        if (left > 0) {
+          left = 0
         }
-        else if (Math.abs(newOffsetLeft) + container.width > img.width) {
-          newOffsetLeft = -1 * Math.abs(img.width - container.width)
+        else if (Math.abs(left) + container.width > img.width) {
+          left = -1 * Math.abs(img.width - container.width)
         }
       }
 
-      img.offsetTop   = newOffsetTop
-      img.offsetLeft  = newOffsetLeft
+      img.top   = top
+      img.left  = left
 
-      img.elm.style.marginTop   = size(newOffsetTop)
-      img.elm.style.marginLeft  = size(newOffsetLeft)
+      img.elm.style.marginTop   = size(top)
+      img.elm.style.marginLeft  = size(left)
     }
-  }
-
-  document.onmouseup = () => {
-    container.elm.style.cursor = '-webkit-grab'
-    container.draggable = false
-  }
-}
-
-CoverEditor.prototype.save = function () {
-  this.events.onSave({
-    zoom:   Number(this.state.zoom.value.toFixed(3)),
-    top:    Number(Math.abs(this.state.img.offsetTop / this.state.img.height).toFixed(3)),
-    left:   Number(Math.abs(this.state.img.offsetLeft / this.state.img.width).toFixed(3))
   })
-}
-
-CoverEditor.prototype.cancel = function () {
 
 }
-
-
-export default CoverEditor
