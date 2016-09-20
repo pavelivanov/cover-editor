@@ -1,5 +1,5 @@
 <p>
-  <img src="./images/logo.png" height="160" />
+  <img src="./images/logo.jpg" height="160" />
 </p>
 
 # Cover Editor
