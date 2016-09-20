@@ -15,4 +15,4 @@ Page Cover editor (like FB)
 
 ## Overview
 
-![Example](./images/example.jpg)
+![Example](./images/example.png)
