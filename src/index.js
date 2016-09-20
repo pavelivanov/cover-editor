@@ -15,8 +15,6 @@ const CoverEditor = function (containerElm, options) {
     opts[key] = key in options ? options[key] : defaultOpts[key]
   }
 
-  const data = this.data = {}
-
 
   // Drag -------------------------------------------------------- /
 
@@ -27,7 +25,7 @@ const CoverEditor = function (containerElm, options) {
 
   const scale = {}
 
-  scale.min   = 0
+  scale.min   = 1
   scale.value = opts.initialParams && opts.initialParams.scale || 1
 
   scale.up    = () => scaleImage(1)
@@ -66,11 +64,11 @@ const CoverEditor = function (containerElm, options) {
   }
 
   const scaleImage = (delta) => {
-    scale.value += opts.scaleStep * delta
-
-    if (scale.value < scale.min) {
-      scale.value = scale.min
+    if (delta < 0 && scale.value + opts.scaleStep * delta <= scale.min) {
+      return
     }
+
+    scale.value += opts.scaleStep * delta
 
     const sizes = {
       width: 0,
@@ -81,6 +79,9 @@ const CoverEditor = function (containerElm, options) {
 
     sizes.width   = Number(img.originalWidth * scale.value)
     sizes.height  = Number(img.originalHeight * scale.value)
+
+    sizes.top     = Number(img.top - img.top * opts.scaleStep * delta)
+    sizes.left    = Number(img.left - img.left * opts.scaleStep * delta)
 
     // min height priory
     if (img.ratio > container.ratio) {
@@ -105,14 +106,14 @@ const CoverEditor = function (containerElm, options) {
 
   // Container --------------------------------------------------- /
 
-    const container = {}
+  const container = {}
 
-    container.elm                 = containerElm
-    container.elm.style.overflow  = 'hidden'
-    container.elm.style.cursor    = '-webkit-grab'
-    container.width               = container.elm.clientWidth
-    container.height              = container.elm.clientHeight
-    container.ratio               = container.width / container.height
+  container.elm                 = containerElm
+  container.elm.style.overflow  = 'hidden'
+  container.elm.style.cursor    = '-webkit-grab'
+  container.width               = container.elm.clientWidth
+  container.height              = container.elm.clientHeight
+  container.ratio               = container.width / container.height
 
 
   // Image ------------------------------------------------------- /
@@ -129,34 +130,47 @@ const CoverEditor = function (containerElm, options) {
   img.elm.onload = function() {
     img.originalWidth   = img.elm.width
     img.originalHeight  = img.elm.height
-    img.ratio           = img.elm.originalWidth / img.elm.originalHeight
+    img.ratio           = img.originalWidth / img.originalHeight
 
     let width
     let height
     let top
     let left
-    
+
     if (opts.initialParams) {
       width   = opts.initialParams.width
       height  = opts.initialParams.height
       top     = opts.initialParams.top
       left    = opts.initialParams.left
+
+      if (opts.originalWidth != img.originalWidth) {
+        const serverCropRatio = img.originalWidth / opts.initialParams.originalWidth
+
+        scale.value = opts.initialParams.scale / serverCropRatio
+        scale.min   = opts.initialParams.scaleMin / serverCropRatio
+      }
+      else {
+        scale.value = opts.initialParams.scale
+        scale.min   = opts.initialParams.scaleMin
+      }
     }
     else {
       if (img.ratio > container.ratio) {
-        height = container.height
-        width  = img.originalWidth * height / img.originalHeight
+        height  = container.height
+        width   = img.originalWidth * height / img.originalHeight
         top     = 0
         left    = Number(((container.width - width) / 2).toFixed(2))
+
+        scale.value = scale.min = Number((container.height / img.originalHeight).toFixed(2))
       }
       else {
-        width  = container.width
-        height = img.originalHeight * width / img.originalWidth
+        width   = container.width
+        height  = img.originalHeight * width / img.originalWidth
         top     = Number(((container.height - height) / 2).toFixed(2))
         left    = 0
-      }
 
-      scale.min = scale.value = Number((width / img.originalWidth).toFixed(2))
+        scale.value = scale.min = Number((container.width / img.originalWidth).toFixed(2))
+      }
     }
 
     img.width   = width
@@ -183,14 +197,50 @@ const CoverEditor = function (containerElm, options) {
 
   const save = () => {
     if (typeof options.onSave == 'function') {
+      const originalWidth   = Number(img.originalWidth)
+      const originalHeight  = Number(img.originalHeight)
+
+      const initialParams = {
+        originalWidth,
+        originalHeight,
+        width:    Number(img.width),
+        height:   Number(img.height),
+        scale:    Number(scale.value),
+        scaleMin: Number(scale.min),
+        top:      Number(img.top),
+        left:     Number(img.left)
+      }
+
+      const cropArea = {}
+
+      cropArea.width    = Math.floor(container.width / scale.value)
+      cropArea.height   = Math.floor(container.height / scale.value)
+      cropArea.top      = Math.abs(Math.floor(img.top / scale.value))
+      cropArea.left     = Math.abs(Math.floor(img.left / scale.value))
+
+      if (cropArea.width > img.originalWidth) {
+        cropArea.height  = Math.floor(img.originalWidth * cropArea.height / cropArea.width)
+        cropArea.width   = img.originalWidth
+      }
+
+      if (cropArea.height > img.originalHeight) {
+        cropArea.width   = Math.floor(img.originalHeight * img.originalHeight  / cropArea.height)
+        cropArea.height  = img.originalHeight
+      }
+
+      if (cropArea.top + cropArea.height > img.originalHeight) {
+        cropArea.top = img.originalHeight - cropArea.height
+      }
+
+      if (cropArea.left + cropArea.width > img.originalWidth) {
+        cropArea.left = img.originalWidth - cropArea.width
+      }
+
       options.onSave({
-        originalWidth:  Number(img.originalWidth),
-        originalHeight: Number(img.originalHeight),
-        width:          Number(img.width),
-        height:         Number(img.height),
-        scale:          Number(scale.value),
-        top:            Number(img.top),
-        left:           Number(img.left)
+        originalWidth,
+        originalHeight,
+        initialParams,
+        cropArea
       })
     }
   }
@@ -204,11 +254,11 @@ const CoverEditor = function (containerElm, options) {
 
   // Events ------------------------------------------------------- /
 
-  options.navig.save.addEventListener('click', save)
-  options.navig.cancel.addEventListener('click', cancel)
+  options.navig.save && options.navig.save.addEventListener('click', save)
+  options.navig.cancel && options.navig.cancel.addEventListener('click', cancel)
 
-  options.navig.scaleUp.addEventListener('click', scale.up)
-  options.navig.scaleDown.addEventListener('click', scale.down)
+  options.navig.scaleUp && options.navig.scaleUp.addEventListener('click', scale.up)
+  options.navig.scaleDown && options.navig.scaleDown.addEventListener('click', scale.down)
 
   container.elm.addEventListener('mousedown', (event) => {
     drag.initMousePos = {
@@ -266,3 +316,5 @@ const CoverEditor = function (containerElm, options) {
   })
 
 }
+
+export default CoverEditor
