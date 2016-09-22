@@ -23,7 +23,7 @@ Page Cover editor (like FB)
 ```javascript
 const params = JSON.parse(localStorage.getItem('cover-editor:params'))
 
-new CoverEditor(findDOMNode(this.refs.cover), {
+new CoverEditor(CONTAINER_DOM_ELEMENT, {
   src: '/images/cover.jpg',
   initialParams: params,
   navig: {
