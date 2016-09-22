@@ -16,3 +16,24 @@ Page Cover editor (like FB)
 ## Overview
 
 ![Example](./images/example.jpg)
+
+
+## Usage
+
+```javascript
+const params = JSON.parse(localStorage.getItem('cover-editor:params'))
+
+new CoverEditor(findDOMNode(this.refs.cover), {
+  src: '/images/cover.jpg',
+  initialParams: params,
+  navig: {
+    scaleUp: DOM_ELEMENT,
+    scaleDown: DOM_ELEMENT,
+    save: DOM_ELEMENT,
+  },
+  onSave: (params) => {
+    localStorage.setItem('cover-editor:params', JSON.stringify(params.initialParams))
+  },
+  onCancel: () => {}
+})
+```
