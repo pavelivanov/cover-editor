@@ -16,6 +16,17 @@ const CoverEditor = function (containerElm, options) {
   }
 
 
+  // LocalStorage params ----------------------------------------- /
+
+  if (opts.storageKey && localStorage) {
+    const params = JSON.parse(localStorage.getItem(opts.storageKey))
+
+    if (params) {
+      opts.initialParams = params
+    }
+  }
+
+
   // Drag -------------------------------------------------------- /
 
   const drag = {}
@@ -234,6 +245,10 @@ const CoverEditor = function (containerElm, options) {
 
       if (cropArea.left + cropArea.width > img.originalWidth) {
         cropArea.left = img.originalWidth - cropArea.width
+      }
+
+      if (opts.storageKey && localStorage) {
+        localStorage.setItem(opts.storageKey, JSON.stringify(initialParams))
       }
 
       options.onSave({
