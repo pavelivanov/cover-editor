@@ -1,9 +1,7 @@
-function size(value) {
-  return value + 'px'
-}
-
+const size = (value) => value + 'px'
 
 const CoverEditor = function (containerElm, options) {
+
   const defaultOpts = {
     scaleStep: 0.03,
     initialParams: null,
@@ -154,7 +152,7 @@ const CoverEditor = function (containerElm, options) {
       top     = opts.initialParams.top
       left    = opts.initialParams.left
 
-      if (opts.originalWidth != img.originalWidth) {
+      if (opts.originalWidth !== img.originalWidth) {
         const serverCropRatio = img.originalWidth / opts.initialParams.originalWidth
 
         scale.value = opts.initialParams.scale / serverCropRatio
@@ -207,7 +205,7 @@ const CoverEditor = function (containerElm, options) {
   // Methods ------------------------------------------------------ /
 
   const save = () => {
-    if (typeof options.onSave == 'function') {
+    if (typeof options.onSave === 'function') {
       const originalWidth   = Number(img.originalWidth)
       const originalHeight  = Number(img.originalHeight)
 
@@ -261,7 +259,7 @@ const CoverEditor = function (containerElm, options) {
   }
 
   const cancel = () => {
-    if (typeof options.onCancel == 'function') {
+    if (typeof options.onCancel === 'function') {
       options.onCancel()
     }
   }
@@ -269,11 +267,11 @@ const CoverEditor = function (containerElm, options) {
 
   // Events ------------------------------------------------------- /
 
-  options.navig.save && options.navig.save.addEventListener('click', save)
-  options.navig.cancel && options.navig.cancel.addEventListener('click', cancel)
+  options.nav.save && options.nav.save.addEventListener('click', save)
+  options.nav.cancel && options.nav.cancel.addEventListener('click', cancel)
 
-  options.navig.scaleUp && options.navig.scaleUp.addEventListener('click', scale.up)
-  options.navig.scaleDown && options.navig.scaleDown.addEventListener('click', scale.down)
+  options.nav.scaleUp && options.nav.scaleUp.addEventListener('click', scale.up)
+  options.nav.scaleDown && options.nav.scaleDown.addEventListener('click', scale.down)
 
   container.elm.addEventListener('mousedown', (event) => {
     drag.initMousePos = {
@@ -300,7 +298,7 @@ const CoverEditor = function (containerElm, options) {
       let top  = event.pageY - drag.initMousePos.top + drag.initImgPos.top
       let left = event.pageX - drag.initMousePos.left + drag.initImgPos.left
 
-      if (container.height == img.height) {
+      if (container.height === img.height) {
         top = 0
       } else {
         if (top > 0) {
@@ -311,7 +309,7 @@ const CoverEditor = function (containerElm, options) {
         }
       }
 
-      if (container.width == img.width) {
+      if (container.width === img.width) {
         left = 0
       } else {
         if (left > 0) {
