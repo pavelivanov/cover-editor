@@ -4,7 +4,7 @@
 
 # Cover Editor
 
-Page Cover editor (like FB)
+Tiny (2 kb gzipped) page cover editor (like FB does).
 
 [![Npm Version](https://badge.fury.io/js/cover-editor.svg)](https://www.npmjs.com/package/cover-editor)
 [![Month Downloads](https://img.shields.io/npm/dm/cover-editor.svg)](http://npm-stat.com/charts.html?package=cover-editor)
